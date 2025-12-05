@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora Visual de Redes IPv6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2220%22 cy=%2220%22 r=%2215%22 fill=%22%23E31B23%22/><circle cx=%2220%22 cy=%2250%22 r=%2215%22 fill=%22%23E31B23%22/><circle cx=%2220%22 cy=%2280%22 r=%2215%22 fill=%22%23E31B23%22/><circle cx=%2250%22 cy=%2235%22 r=%2215%22 fill=%22%23E31B23%22/><circle cx=%2250%22 cy=%2265%22 r=%2215%22 fill=%22%23E31B23%22/><circle cx=%2280%22 cy=%2250%22 r=%2215%22 fill=%22%23E31B23%22/></svg>">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
+        .font-mono { font-family: 'Fira Code', 'Roboto Mono', monospace; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center text-red-600 dark:text-red-500">
+                        <i data-lucide="network" class="h-8 w-8 mr-2"></i>
+                        <span class="font-bold text-xl tracking-tight">IPv6 Calc</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+        
+        <!-- Input Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 border border-gray-200 dark:border-gray-700">
+            <form id="calcForm" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                
+                <div class="md:col-span-5">
+                    <label for="network" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección de Red IPv6</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="globe" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="text" name="network" id="network" value="2001:db8::" 
+                            class="focus:ring-red-500 focus:border-red-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white py-2 border" 
+                            placeholder="ej. 2001:db8::">
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="netbits" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefijo (Bits)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">/</span>
+                        </div>
+                        <input type="number" name="netbits" id="netbits" value="32" min="0" max="128"
+                            class="focus:ring-red-500 focus:border-red-500 block w-full pl-8 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white py-2 border">
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <button type="button" onclick="updateNetwork()" 
+                        class="w-full flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <i data-lucide="refresh-cw" class="h-4 w-4 mr-2"></i>
+                        Calcular
+                    </button>
+                </div>
+                
+                <div class="md:col-span-3 text-right">
+                     <button type="button" onclick="startOver()" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium">
+                        Reiniciar Todo
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Instructions & Actions -->
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-sm mb-8 border border-gray-200 dark:border-gray-700">
+             <h3 class="font-bold mb-2 text-gray-800 dark:text-gray-100">Instrucciones y Acciones</h3>
+             <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                 <li><strong class="text-blue-600 dark:text-blue-400">Dividir:</strong> Separa una red en dos subredes (/n+1).</li>
+                 <li><strong class="text-green-600 dark:text-green-400">Unir:</strong> Combina dos subredes adyacentes.</li>
+                 <li>Guardar/Compartir: <a href="#" id="saveLink" class="font-bold text-red-600 hover:underline">Link Persistente</a></li>
+                 <li>Exportar: <button onclick="copyTableAsCSV()" class="font-bold text-red-600 hover:underline">Copiar Tabla (CSV)</button></li>
+             </ul>
+        </div>
+
+        <!-- Visualization Table -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="calcTable">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/3">Subred</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rango (Inicio - Fin)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-24">Acciones</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-24">Unir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calcbody" class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        <!-- Rows generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+                &copy; 2025 Ernesto Pineda B. Generado con BigInt para precisión de 128 bits.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // --- IPv6 Logic with BigInt ---
+
+        let rootSubnet = [0, 0, null]; // [depth, numChildren, childrenArray]
+        let curNetworkBigInt = 0n;
+        let curPrefix = 0;
+
+        // Helper: Parse IPv6 string to BigInt
+        function ipv6ToBigInt(ipv6Str) {
+            // Expand ::
+            if (ipv6Str.indexOf('::') !== -1) {
+                const parts = ipv6Str.split('::');
+                const left = parts[0].split(':').filter(p => p);
+                const right = parts[1].split(':').filter(p => p);
+                const missing = 8 - (left.length + right.length);
+                const zeros = Array(missing).fill('0');
+                ipv6Str = [...left, ...zeros, ...right].join(':');
+            }
+            
+            const parts = ipv6Str.split(':');
+            if (parts.length !== 8) return null;
+
+            let result = 0n;
+            for (let i = 0; i < 8; i++) {
+                const hex = parts[i] || '0';
+                if (!/^[0-9a-fA-F]{1,4}$/.test(hex)) return null;
+                result = (result << 16n) + BigInt(parseInt(hex, 16));
+            }
+            return result;
+        }
+
+        // Helper: BigInt to IPv6 string (compressed)
+        function bigIntToIPv6(bigInt) {
+            const parts = [];
+            for (let i = 0; i < 8; i++) {
+                // Extract 16 bits from the correct position
+                // Shift right by (7-i)*16
+                const shift = BigInt((7 - i) * 16);
+                const part = (bigInt >> shift) & 0xFFFFn;
+                parts.push(part.toString(16));
+            }
+            
+            // Simple compression logic (replace longest sequence of 0s with ::)
+            let str = parts.join(':');
+            // This is a basic compression, can be improved
+            str = str.replace(/(^|:)0(:0)+(:|$)/, '::');
+            return str;
+        }
+
+        function getNetworkAddress(ipBigInt, prefix) {
+            const mask = ~((1n << BigInt(128 - prefix)) - 1n);
+            // Mask needs to be truncated to 128 bits to handle negative BigInt representation of NOT
+            // But in JS BigInt, we can just mask with the full 128 bits of 1s if needed.
+            // Simpler approach: Shift right then left
+            const shift = BigInt(128 - prefix);
+            return (ipBigInt >> shift) << shift;
+        }
+
+        function updateNetwork() {
+            const inputIp = document.getElementById('network').value.trim();
+            const inputPrefix = parseInt(document.getElementById('netbits').value);
+
+            if (inputPrefix < 0 || inputPrefix > 128) {
+                alert("El prefijo debe estar entre 0 y 128");
+                return;
+            }
+
+            const ipBigInt = ipv6ToBigInt(inputIp);
+            if (ipBigInt === null) {
+                alert("Dirección IPv6 inválida");
+                return;
+            }
+
+            const netAddress = getNetworkAddress(ipBigInt, inputPrefix);
+            
+            // Check if input was already a network address
+            if (netAddress !== ipBigInt) {
+                const newStr = bigIntToIPv6(netAddress);
+                alert(`La dirección ingresada no es una dirección de red base. Se ha corregido a: ${newStr}`);
+                document.getElementById('network').value = newStr;
+            }
+
+            curNetworkBigInt = netAddress;
+            curPrefix = inputPrefix;
+            
+            startOver();
+        }
+
+        function startOver() {
+            rootSubnet = [0, 0, null];
+            recreateTables();
+        }
+
+        function recreateTables() {
+            const tbody = document.getElementById('calcbody');
+            tbody.innerHTML = '';
+
+            updateNumChildren(rootSubnet);
+            updateDepthChildren(rootSubnet);
+
+            createRow(tbody, rootSubnet, curNetworkBigInt, curPrefix, [curPrefix, rootSubnet[1], rootSubnet], rootSubnet[0]);
+
+            // Update Permanent Link
+            const link = document.getElementById('saveLink');
+            if (link) {
+                const networkStr = bigIntToIPv6(curNetworkBigInt);
+                const divisionStr = binToAscii(nodeToString(rootSubnet));
+                link.href = `?network=${networkStr}&mask=${curPrefix}&division=${divisionStr}`;
+            }
+        }
+
+        function createRow(tbody, node, addressBigInt, prefix, labels, depth) {
+            if (node[2]) {
+                // Has children (Split)
+                // Left Child (0 bit)
+                let newLabels = [...labels];
+                newLabels.push(prefix + 1);
+                newLabels.push(node[2][0][1]); // Rowspan
+                newLabels.push(node[2][0]);     // Node ref
+                createRow(tbody, node[2][0], addressBigInt, prefix + 1, newLabels, depth - 1);
+
+                // Right Child (1 bit)
+                // Address + 2^(128 - (prefix+1))
+                const increment = 1n << BigInt(128 - (prefix + 1));
+                
+                let rightLabelsArr = [];
+                rightLabelsArr.push(prefix + 1);
+                rightLabelsArr.push(node[2][1][1]);
+                rightLabelsArr.push(node[2][1]);
+                
+                createRow(tbody, node[2][1], addressBigInt + increment, prefix + 1, rightLabelsArr, depth - 1);
+
+            } else {
+                // Leaf Node (Render Row)
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-700";
+
+                // 1. Subnet Column
+                const tdSubnet = document.createElement('td');
+                tdSubnet.className = "px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900 dark:text-gray-100";
+                tdSubnet.textContent = `${bigIntToIPv6(addressBigInt)}/${prefix}`;
+                tr.appendChild(tdSubnet);
+
+                // 2. Range Column
+                const tdRange = document.createElement('td');
+                tdRange.className = "px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-500 dark:text-gray-400";
+                const lastAddr = addressBigInt + (1n << BigInt(128 - prefix)) - 1n;
+                tdRange.textContent = `${bigIntToIPv6(addressBigInt)} - ${bigIntToIPv6(lastAddr)}`;
+                tr.appendChild(tdRange);
+
+                // 3. Actions (Divide)
+                const tdAction = document.createElement('td');
+                tdAction.className = "px-6 py-4 whitespace-nowrap text-sm";
+                if (prefix < 128) {
+                    const btn = document.createElement('button');
+                    btn.className = "text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center";
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-split mr-1"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg> Dividir';
+                    btn.onclick = () => divide(node);
+                    tdAction.appendChild(btn);
+                } else {
+                    tdAction.textContent = "-";
+                }
+                tr.appendChild(tdAction);
+
+                // 4. Join Column
+                if (labels && labels.length > 0) {
+                     for (let i = (labels.length / 3) - 1; i >= 0; i--) {
+                        const labelMask = labels[i * 3];
+                        const rowspan = labels[(i * 3) + 1];
+                        const joinNode = labels[(i * 3) + 2];
+
+                        const tdJoin = document.createElement('td');
+                        tdJoin.rowSpan = rowspan > 1 ? rowspan : 1;
+                        tdJoin.className = "border-l border-gray-200 dark:border-gray-700 text-center align-middle p-0 cursor-pointer hover:bg-green-50 dark:hover:bg-green-900 transition-colors";
+                        tdJoin.title = `Unir /${labelMask-1}`; 
+                        
+                        // Visual indicator
+                        const div = document.createElement('div');
+                        div.className = "h-full w-full flex items-center justify-center py-2";
+                        div.innerHTML = `<span class="text-xs font-bold text-green-600 dark:text-green-400">/${labelMask-1}</span>`;
+                        
+                        tdJoin.appendChild(div);
+                        tdJoin.onclick = () => join(joinNode);
+                        
+                        tr.appendChild(tdJoin);
+                     }
+                }
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        function divide(node) {
+            node[2] = [];
+            node[2][0] = [0, 0, null]; // Left child
+            node[2][1] = [0, 0, null]; // Right child
+            recreateTables();
+        }
+
+        function join(node) {
+            node[2] = null; // Remove children
+            recreateTables();
+        }
+
+        function updateNumChildren(node) {
+            if (node[2] == null) {
+                node[1] = 0;
+                return 1;
+            } else {
+                node[1] = updateNumChildren(node[2][0]) + updateNumChildren(node[2][1]);
+                return node[1];
+            }
+        }
+
+        function updateDepthChildren(node) {
+            if (node[2] == null) {
+                node[0] = 0;
+                return 1;
+            } else {
+                node[0] = updateDepthChildren(node[2][0]) + updateDepthChildren(node[2][1]);
+                return node[0];
+            }
+        }
+
+        // --- Persistence & Export Helpers ---
+
+        function nodeToString(node) {
+            if (node[2]) {
+                return '1' + nodeToString(node[2][0]) + nodeToString(node[2][1]);
+            } else {
+                return '0';
+            }
+        }
+
+        function binToAscii(str) {
+            var curOut = '';
+            var curBit = 0;
+            var curChar = 0;
+            for (var i = 0; i < str.length; i++) {
+                if (str.charAt(i) == '1') {
+                    curChar |= 1 << curBit;
+                }
+                curBit++;
+                if (curBit > 3) {
+                    curOut += curChar.toString(16);
+                    curChar = 0;
+                    curBit = 0;
+                }
+            }
+            if (curBit > 0) {
+                curOut += curChar.toString(16);
+            }
+            return str.length + '.' + curOut;
+        }
+
+        function asciiToBin(str) {
+            var re = /([0-9]+)\.([0-9a-f]+)/;
+            var res = re.exec(str);
+            if (!res) return '0';
+            var len = res[1];
+            var encoded = res[2];
+            var out = '';
+            for (var i = 0; i < len; i++) {
+                var ch = parseInt(encoded.charAt(Math.floor(i / 4)), 16);
+                var pos = i % 4;
+                out += (ch & (1 << pos) ? '1' : '0');
+            }
+            return out;
+        }
+
+        function loadNode(curNode, division) {
+            if (division.charAt(0) == '0') {
+                return division.substr(1);
+            } else {
+                curNode[2] = [];
+                curNode[2][0] = [0, 0, null];
+                curNode[2][1] = [0, 0, null];
+                division = loadNode(curNode[2][0], division.substr(1));
+                division = loadNode(curNode[2][1], division);
+                return division;
+            }
+        }
+
+        function parseQueryString() {
+            var str = location.search;
+            var query = str.charAt(0) == '?' ? str.substring(1) : str;
+            var args = {};
+            if (query) {
+                var fields = query.split('&');
+                for (var f = 0; f < fields.length; f++) {
+                    var field = fields[f].split('=');
+                    if(field[0]) args[decodeURIComponent(field[0].replace(/\+/g, ' '))] = decodeURIComponent(field[1].replace(/\+/g, ' '));
+                }
+            }
+            return args;
+        }
+
+        function copyTableAsCSV() {
+            const table = document.getElementById('calcTable');
+            if (!table) return;
+            
+            const rows = [];
+            
+            // Headers
+            const headers = [];
+            table.querySelectorAll('thead th').forEach(th => {
+                headers.push(`"${th.textContent.trim()}"`);
+            });
+            rows.push(headers.join(','));
+            
+            // Body
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const rowData = [];
+                tr.querySelectorAll('td').forEach(td => {
+                    rowData.push(`"${td.textContent.trim().replace(/"/g, '""')}"`);
+                });
+                rows.push(rowData.join(','));
+            });
+            
+            const csvContent = rows.join('\n');
+            navigator.clipboard.writeText(csvContent).then(() => {
+                alert('¡Tabla copiada al portapapeles en formato CSV!');
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                alert('No se pudo copiar la tabla.');
+            });
+        }
+
+        // --- Initialization ---
+
+        window.onload = function() {
+            const args = parseQueryString();
+            if (args['network'] && args['mask'] && args['division']) {
+                document.getElementById('network').value = args['network'];
+                document.getElementById('netbits').value = args['mask'];
+                
+                // Initialize logic
+                const inputIp = args['network'];
+                const inputPrefix = parseInt(args['mask']);
+                const ipBigInt = ipv6ToBigInt(inputIp);
+                
+                if (ipBigInt !== null) {
+                    curNetworkBigInt = getNetworkAddress(ipBigInt, inputPrefix);
+                    curPrefix = inputPrefix;
+                    
+                    rootSubnet = [0, 0, null];
+                    const division = asciiToBin(args['division']);
+                    if (division != '0') {
+                        loadNode(rootSubnet, division);
+                    }
+                    recreateTables();
+                } else {
+                    updateNetwork();
+                }
+            } else {
+                updateNetwork();
+            }
+        };
+
+    </script>
+</body>
+</html>
