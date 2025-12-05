@@ -5,10 +5,17 @@ Esta es una herramienta web moderna para visualizar y manipular divisiones de un
 
 Permite calcular subredes, dividir una red en dos mitades (split) y unir subredes adyacentes (join), mostrando para cada subred la dirección de red en notación CIDR y el rango de direcciones.
 
+**🌐 Aplicación disponible en:** [https://globalincom.com.mx/subnet6](https://globalincom.com.mx/subnet6)
+
 ## Características Principales
 - **Soporte IPv6 Nativo**: Utiliza `BigInt` para cálculos de 128 bits, superando el límite de enteros seguros de JavaScript ($2^{53}$).
 - **Interfaz Moderna**: Construida con Tailwind CSS (CDN) para un diseño limpio, responsive y adaptable a modo oscuro.
 - **Visualización de Árbol**: Representación jerárquica de las divisiones de red.
+- **Herramientas Avanzadas**:
+  - **Calculadora EUI-64**: Convierte direcciones MAC a IPv6 SLAAC.
+  - **Generador PTR**: Crea registros DNS inversos (`.ip6.arpa`) con un clic.
+  - **Clasificación**: Identifica automáticamente tipos de direcciones (Global, ULA, Link-Local, etc.).
+  - **Visualización Flexible**: Alterna entre formato comprimido (`::`) y expandido.
 - **Operaciones Interactivas**:
   - **Dividir**: Separa una red en dos subredes (/n+1).
   - **Unir**: Combina dos subredes adyacentes en su red padre.
@@ -16,7 +23,7 @@ Permite calcular subredes, dividir una red en dos mitades (split) y unir subrede
 - **Exportación**: Permite copiar la tabla de resultados al portapapeles en formato CSV compatible con Excel/Sheets.
 
 ## Uso
-1. Abrir `index.html` en un navegador moderno.
+1. Abrir `index.html` en un navegador moderno o visitar la versión online.
 2. Introducir una dirección IPv6 (ej. `2001:db8::`) y el prefijo (ej. `32`).
 3. Pulsar **Calcular**.
 4. Usar los botones de **Dividir** en la tabla para segmentar la red.
