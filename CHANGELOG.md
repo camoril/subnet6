@@ -5,6 +5,10 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.1.1] - 2025-12-04
+### Añadido
+- **Tabla de Referencia Rápida**: Se incluyó una tabla de resumen para Sysadmins con los tipos de direcciones IPv6 más comunes, sus prefijos y equivalencias con IPv4.
+
 ## [1.1.0] - 2025-12-04
 ### Añadido
 - **Calculadora EUI-64**: Herramienta para calcular direcciones IPv6 SLAAC a partir de una dirección MAC y un prefijo.
