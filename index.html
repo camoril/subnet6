@@ -12,6 +12,11 @@
         body { font-family: 'Inter', sans-serif; }
         h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
         .font-mono { font-family: 'Fira Code', 'Roboto Mono', monospace; }
+        /* Toggle Switch Styles */
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #E31B23;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
@@ -27,6 +32,18 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <label for="toggleExpand" class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" id="toggleExpand" class="sr-only" onchange="toggleExpanded()">
+                                <div class="block bg-gray-300 dark:bg-gray-600 w-10 h-6 rounded-full"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                            </div>
+                            <div class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Expandir IPs
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -108,6 +125,38 @@
             </div>
         </div>
 
+        <!-- EUI-64 Calculator Section -->
+        <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <i data-lucide="cpu" class="h-5 w-5 mr-2 text-red-600"></i>
+                Calculadora EUI-64 (MAC a IPv6)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                <div class="md:col-span-4">
+                    <label for="macAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección MAC</label>
+                    <input type="text" id="macAddress" placeholder="00:11:22:33:44:55" 
+                        class="focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white py-2 border px-3">
+                </div>
+                <div class="md:col-span-4">
+                    <label for="euiPrefix" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prefijo de Red</label>
+                    <input type="text" id="euiPrefix" placeholder="2001:db8::" 
+                        class="focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white py-2 border px-3">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="button" onclick="calculateEUI64()" 
+                        class="w-full flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none transition-colors">
+                        Calcular
+                    </button>
+                </div>
+                <div class="md:col-span-12">
+                    <div id="euiResult" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600">
+                        <span class="text-sm text-gray-500 dark:text-gray-400 block mb-1">Dirección Generada (SLAAC):</span>
+                        <code class="text-lg font-mono text-red-600 dark:text-red-400 break-all select-all" id="euiOutput"></code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
@@ -127,6 +176,12 @@
         let rootSubnet = [0, 0, null]; // [depth, numChildren, childrenArray]
         let curNetworkBigInt = 0n;
         let curPrefix = 0;
+        let isExpanded = false;
+
+        function toggleExpanded() {
+            isExpanded = document.getElementById('toggleExpand').checked;
+            recreateTables();
+        }
 
         // Helper: Parse IPv6 string to BigInt
         function ipv6ToBigInt(ipv6Str) {
@@ -156,25 +211,116 @@
         function bigIntToIPv6(bigInt) {
             const parts = [];
             for (let i = 0; i < 8; i++) {
-                // Extract 16 bits from the correct position
-                // Shift right by (7-i)*16
                 const shift = BigInt((7 - i) * 16);
                 const part = (bigInt >> shift) & 0xFFFFn;
                 parts.push(part.toString(16));
             }
-            
-            // Simple compression logic (replace longest sequence of 0s with ::)
             let str = parts.join(':');
-            // This is a basic compression, can be improved
             str = str.replace(/(^|:)0(:0)+(:|$)/, '::');
             return str;
         }
 
+        // Helper: BigInt to Expanded IPv6
+        function bigIntToExpandedIPv6(bigInt) {
+            const parts = [];
+            for (let i = 0; i < 8; i++) {
+                const shift = BigInt((7 - i) * 16);
+                const part = (bigInt >> shift) & 0xFFFFn;
+                parts.push(part.toString(16).padStart(4, '0'));
+            }
+            return parts.join(':');
+        }
+
+        function formatIPv6(bigInt) {
+            return isExpanded ? bigIntToExpandedIPv6(bigInt) : bigIntToIPv6(bigInt);
+        }
+
+        function getIPv6Type(bigInt) {
+            // Link-Local: fe80::/10 (1111 1110 10...) -> First 10 bits
+            // ULA: fc00::/7 (1111 110...) -> First 7 bits
+            // Multicast: ff00::/8 (1111 1111...) -> First 8 bits
+            // Global: 2000::/3 (001...) -> First 3 bits
+            
+            const high16 = Number((bigInt >> 112n) & 0xFFFFn);
+            
+            if ((high16 & 0xFFC0) === 0xFE80) return { name: 'Link-Local', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' };
+            if ((high16 & 0xFE00) === 0xFC00) return { name: 'ULA', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' };
+            if ((high16 & 0xFF00) === 0xFF00) return { name: 'Multicast', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' };
+            if ((high16 & 0xE000) === 0x2000) return { name: 'Global', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' };
+            if (bigInt === 1n) return { name: 'Loopback', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' };
+            if (bigInt === 0n) return { name: 'Unspecified', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' };
+            
+            return { name: 'Reserved/Other', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' };
+        }
+
+        function getPtrRecord(bigInt, prefix) {
+            // Reverse nibbles
+            // For a subnet, we usually want the PTR for the network address? Or just the zone?
+            // Usually for a subnet calculator, we want the zone.
+            // Zone is nibbles of the prefix reversed.
+            // Example: 2001:db8::/32
+            // Nibbles: 2, 0, 0, 1, 0, d, b, 8
+            // Reverse: 8.b.d.0.1.0.0.2.ip6.arpa
+            
+            const expanded = bigIntToExpandedIPv6(bigInt).replace(/:/g, '');
+            const nibbleCount = Math.ceil(prefix / 4);
+            const nibbles = expanded.substring(0, nibbleCount).split('');
+            return nibbles.reverse().join('.') + '.ip6.arpa';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Could show a toast here
+                alert('Copiado al portapapeles: ' + text);
+            });
+        }
+
+        function calculateEUI64() {
+            const macInput = document.getElementById('macAddress').value.trim();
+            const prefixInput = document.getElementById('euiPrefix').value.trim();
+            const output = document.getElementById('euiOutput');
+            const resultDiv = document.getElementById('euiResult');
+
+            // Clean MAC
+            const macClean = macInput.replace(/[^0-9a-fA-F]/g, '');
+            if (macClean.length !== 12) {
+                alert('Dirección MAC inválida. Debe tener 12 caracteres hexadecimales.');
+                return;
+            }
+
+            // Parse Prefix
+            const prefixBigInt = ipv6ToBigInt(prefixInput);
+            if (prefixBigInt === null) {
+                alert('Prefijo IPv6 inválido.');
+                return;
+            }
+
+            // EUI-64 Logic:
+            // 1. Split MAC into two 24-bit halves
+            // 2. Insert FFFE in the middle
+            // 3. Flip the 7th bit (Universal/Local) of the first byte
+            
+            let macInt = BigInt('0x' + macClean);
+            let left = (macInt >> 24n) & 0xFFFFFFn;
+            let right = macInt & 0xFFFFFFn;
+            
+            // Flip 7th bit of left (0x020000)
+            left ^= 0x020000n;
+            
+            let interfaceId = (left << 40n) | (0xFFFEn << 24n) | right;
+            
+            // Combine with Prefix (assuming /64 usually, but we just OR it)
+            // Usually EUI-64 is used with /64 prefixes.
+            // We take the top 64 bits of the prefix.
+            
+            const prefix64 = (prefixBigInt >> 64n) << 64n;
+            const finalAddr = prefix64 | interfaceId;
+            
+            output.textContent = bigIntToIPv6(finalAddr);
+            resultDiv.classList.remove('hidden');
+        }
+
         function getNetworkAddress(ipBigInt, prefix) {
-            const mask = ~((1n << BigInt(128 - prefix)) - 1n);
-            // Mask needs to be truncated to 128 bits to handle negative BigInt representation of NOT
-            // But in JS BigInt, we can just mask with the full 128 bits of 1s if needed.
-            // Simpler approach: Shift right then left
             const shift = BigInt(128 - prefix);
             return (ipBigInt >> shift) << shift;
         }
@@ -205,6 +351,9 @@
 
             curNetworkBigInt = netAddress;
             curPrefix = inputPrefix;
+            
+            // Pre-fill EUI-64 prefix
+            document.getElementById('euiPrefix').value = bigIntToIPv6(netAddress);
             
             startOver();
         }
@@ -261,19 +410,26 @@
                 // 1. Subnet Column
                 const tdSubnet = document.createElement('td');
                 tdSubnet.className = "px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-900 dark:text-gray-100";
-                tdSubnet.textContent = `${bigIntToIPv6(addressBigInt)}/${prefix}`;
+                
+                // Classification Badge
+                const type = getIPv6Type(addressBigInt);
+                const badge = `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${type.color}">${type.name}</span>`;
+                
+                tdSubnet.innerHTML = `${formatIPv6(addressBigInt)}/${prefix} ${badge}`;
                 tr.appendChild(tdSubnet);
 
                 // 2. Range Column
                 const tdRange = document.createElement('td');
                 tdRange.className = "px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-500 dark:text-gray-400";
                 const lastAddr = addressBigInt + (1n << BigInt(128 - prefix)) - 1n;
-                tdRange.textContent = `${bigIntToIPv6(addressBigInt)} - ${bigIntToIPv6(lastAddr)}`;
+                tdRange.textContent = `${formatIPv6(addressBigInt)} - ${formatIPv6(lastAddr)}`;
                 tr.appendChild(tdRange);
 
-                // 3. Actions (Divide)
+                // 3. Actions (Divide + PTR)
                 const tdAction = document.createElement('td');
-                tdAction.className = "px-6 py-4 whitespace-nowrap text-sm";
+                tdAction.className = "px-6 py-4 whitespace-nowrap text-sm flex items-center space-x-3";
+                
+                // Divide Button
                 if (prefix < 128) {
                     const btn = document.createElement('button');
                     btn.className = "text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center";
@@ -281,8 +437,19 @@
                     btn.onclick = () => divide(node);
                     tdAction.appendChild(btn);
                 } else {
-                    tdAction.textContent = "-";
+                    const span = document.createElement('span');
+                    span.textContent = "-";
+                    tdAction.appendChild(span);
                 }
+
+                // PTR Button
+                const btnPtr = document.createElement('button');
+                btnPtr.className = "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium flex items-center";
+                btnPtr.title = "Copiar Zona Inversa (PTR)";
+                btnPtr.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+                btnPtr.onclick = () => copyToClipboard(getPtrRecord(addressBigInt, prefix));
+                tdAction.appendChild(btnPtr);
+
                 tr.appendChild(tdAction);
 
                 // 4. Join Column
